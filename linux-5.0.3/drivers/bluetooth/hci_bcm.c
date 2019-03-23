@@ -228,9 +228,6 @@ static int bcm_gpio_set_power(struct bcm_device *dev, bool powered)
 	int err;
 
 	if (powered && !dev->res_enabled) {
-		err = regulator_bulk_enable(BCM_NUM_SUPPLIES, dev->supplies);
-		if (err)
-			return err;
 
 		/* LPO clock needs to be 32.768 kHz */
 		err = clk_set_rate(dev->lpo_clk, 32768);
@@ -252,10 +249,6 @@ static int bcm_gpio_set_power(struct bcm_device *dev, bool powered)
 	if (err)
 		goto err_txco_clk_disable;
 
-	err = dev->set_device_wakeup(dev, powered);
-	if (err)
-		goto err_revert_shutdown;
-
 	if (!powered && dev->res_enabled) {
 		clk_disable_unprepare(dev->txco_clk);
 		clk_disable_unprepare(dev->lpo_clk);
@@ -269,7 +262,6 @@ static int bcm_gpio_set_power(struct bcm_device *dev, bool powered)
 
 	return 0;
 
-err_revert_shutdown:
 	dev->set_shutdown(dev, !powered);
 err_txco_clk_disable:
 	if (powered && !dev->res_enabled)
